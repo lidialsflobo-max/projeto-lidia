@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Lista de tarefas interativa para organizar atividades do dia a dia.">
+  <title>Minha Lista de Tarefas</title>
+  <style>
+    :root {
+      --primary: #6d5ce8;
+      --primary-dark: #5142c5;
+      --background: #f5f6fc;
+      --surface: #ffffff;
+      --text: #25243a;
+      --muted: #77778b;
+      --border: #e8e8f1;
+      --danger: #d9485f;
+      --success: #23865b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #f5f6fc 0%, #eeebff 100%);
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 28px 20px;
+      text-align: center;
+      color: white;
+      background: var(--primary);
+    }
+
+    header h1 { margin: 0 0 6px; font-size: clamp(1.6rem, 4vw, 2.2rem); }
+    header p { margin: 0; opacity: .92; }
+
+    main {
+      width: min(100% - 32px, 720px);
+      margin: 32px auto;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: clamp(18px, 4vw, 28px);
+      box-shadow: 0 12px 35px rgba(50, 43, 110, .08);
+    }
+
+    .intro { margin-bottom: 22px; }
+    .intro h2 { margin: 0 0 5px; font-size: 1.3rem; }
+    .intro p { margin: 0; color: var(--muted); }
+
+    form {
+      display: flex;
+      gap: 10px;
+      margin: 22px 0;
+    }
+
+    label {
+      display: block;
+      font-weight: 650;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap { flex: 1; min-width: 0; }
+    input[type="text"] {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid #d9d8e8;
+      border-radius: 10px;
+      font: inherit;
+      background: white;
+      color: var(--text);
+    }
+
+    input[type="text"]:focus {
+      outline: 3px solid rgba(109, 92, 232, .2);
+      border-color: var(--primary);
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background .2s, transform .2s;
+    }
+
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid #b7afff;
+      outline-offset: 2px;
+    }
+
+    .add-button { align-self: end; color: white; background: var(--primary); }
+    .add-button:hover { background: var(--primary-dark); }
+    button:active { transform: scale(.98); }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .filter-button {
+      padding: 8px 12px;
+      color: var(--muted);
+      background: #f3f3fa;
+      font-size: .92rem;
+    }
+    .filter-button[aria-pressed="true"] {
+      color: white;
+      background: var(--primary);
+    }
+
+    .task-count { color: var(--muted); font-size: .92rem; }
+    .task-list { list-style: none; margin: 0; padding: 0; }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 2px;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-item:last-child { border-bottom: 0; }
+    .task-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .task-text { flex: 1; overflow-wrap: anywhere; }
+    .task-item.completed .task-text {
+      color: #9292a3;
+      text-decoration: line-through;
+    }
+
+    .delete-button {
+      color: var(--danger);
+      background: #fff0f2;
+      padding: 8px 10px;
+      font-size: .9rem;
+    }
+    .delete-button:hover { background: #ffe0e5; }
+
+    .empty-state {
+      padding: 32px 12px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .empty-state p { margin: 8px 0 0; }
+    .empty-icon { font-size: 2rem; }
+
+    footer {
+      padding: 10px 20px 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 520px) {
+      header { padding: 24px 16px; }
+      main { width: min(100% - 20px, 720px); margin: 18px auto; }
+      form { flex-direction: column; }
+      .add-button { width: 100%; }
+      .toolbar { align-items: flex-start; }
+      .filters { width: 100%; }
+      .filter-button { flex: 1; }
+      .task-item { gap: 9px; }
+      .delete-button { padding: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Minha Lista de Tarefas</h1>
+    <p>Organize seu dia, uma tarefa de cada vez.</p>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="section-title">
+      <article class="intro">
+        <h2 id="section-title">Minhas tarefas</h2>
+        <p>Adicione suas atividades e acompanhe seu progresso.</p>
+      </article>
+
+      <form id="task-form">
+        <div class="input-wrap">
+          <label for="task-input">Nova tarefa</label>
+          <input id="task-input" name="task" type="text" maxlength="180"
+                 placeholder="Ex.: estudar para a prova" autocomplete="off" required>
+        </div>
+        <button class="add-button" type="submit">+ Adicionar</button>
+      </form>
+
+      <div class="toolbar">
+        <div class="filters" role="group" aria-label="Filtrar tarefas">
+          <button class="filter-button" type="button" data-filter="all" aria-pressed="true">Todas</button>
+          <button class="filter-button" type="button" data-filter="pending" aria-pressed="false">Pendentes</button>
+          <button class="filter-button" type="button" data-filter="completed" aria-pressed="false">Concluídas</button>
+        </div>
+        <span id="task-count" class="task-count" aria-live="polite">0 tarefas</span>
+      </div>
+
+      <ul id="task-list" class="task-list" aria-label="Lista de tarefas"></ul>
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon" aria-hidden="true">📝</div>
+        <p>Nenhuma tarefa por aqui. Adicione sua primeira atividade!</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Suas tarefas ficam salvas neste navegador usando o armazenamento local.</p>
+  </footer>
+
+  <script>
+    const STORAGE_KEY = "minha-lista-de-tarefas-v1";
+    const form = document.querySelector("#task-form");
+    const input = document.querySelector("#task-input");
+    const list = document.querySelector("#task-list");
+    const count = document.querySelector("#task-count");
+    const emptyState = document.querySelector("#empty-state");
+    const filterButtons = document.querySelectorAll("[data-filter]");
+
+    let tasks = loadTasks();
+    let currentFilter = "all";
+
+    function loadTasks() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : [];
+        return Array.isArray(parsed) ? parsed.filter(task =>
+          task && typeof task.id === "string" &&
+          typeof task.text === "string" &&
+          typeof task.completed === "boolean"
+        ) : [];
+      } catch (error) {
+        console.error("Não foi possível carregar as tarefas:", error);
+        return [];
+      }
+    }
+
+    function saveTasks() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch (error) {
+        console.error("Não foi possível salvar as tarefas:", error);
+        alert("Não foi possível salvar as tarefas neste navegador.");
+      }
+    }
+
+    function renderTasks() {
+      list.replaceChildren();
+
+      const visibleTasks = tasks.filter(task => {
+        if (currentFilter === "pending") return !task.completed;
+        if (currentFilter === "completed") return task.completed;
+        return true;
+      });
+
+      visibleTasks.forEach(task => {
+        const item = document.createElement("li");
+        item.className = `task-item${task.completed ? " completed" : ""}`;
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = task.completed;
+        checkbox.id = `task-${task.id}`;
+        checkbox.setAttribute("aria-label", `Marcar "${task.text}" como concluída`);
+        checkbox.addEventListener("change", () => toggleTask(task.id));
+
+        const label = document.createElement("label");
+        label.className = "task-text";
+        label.htmlFor = checkbox.id;
+        label.textContent = task.text;
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "delete-button";
+        deleteButton.textContent = "Excluir";
+        deleteButton.setAttribute("aria-label", `Excluir tarefa: ${task.text}`);
+        deleteButton.addEventListener("click", () => deleteTask(task.id));
+
+        item.append(checkbox, label, deleteButton);
+        list.append(item);
+      });
+
+      const pending = tasks.filter(task => !task.completed).length;
+      count.textContent = `${pending} pendente${pending === 1 ? "" : "s"} · ${tasks.length} no total`;
+      emptyState.hidden = visibleTasks.length > 0;
+      if (tasks.length > 0 && visibleTasks.length === 0) {
+        emptyState.querySelector("p").textContent = "Nenhuma tarefa encontrada neste filtro.";
+      } else {
+        emptyState.querySelector("p").textContent = "Nenhuma tarefa por aqui. Adicione sua primeira atividade!";
+      }
+
+      filterButtons.forEach(button => {
+        button.setAttribute("aria-pressed", String(button.dataset.filter === currentFilter));
+      });
+    }
+
+    function addTask(text) {
+      tasks.unshift({
+        id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+        text,
+        completed: false
+      });
+      saveTasks();
+      renderTasks();
+    }
+
+    function toggleTask(id) {
+      tasks = tasks.map(task => task.id === id
+        ? { ...task, completed: !task.completed }
+        : task
+      );
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(task => task.id !== id);
+      saveTasks();
+      renderTasks();
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const text = input.value.trim();
+      if (!text) {
+        input.focus();
+        return;
+      }
+      addTask(text);
+      input.value = "";
+      input.focus();
+    });
+
+    filterButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        currentFilter = button.dataset.filter;
+        renderTasks();
+      });
+    });
+
+    renderTasks();
+  </script>
+</body>
+</html>
